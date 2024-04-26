@@ -3,25 +3,7 @@ const { validationResult } = require('express-validator');
 const Log = require('../models/EventFlow-logs');
 const PDFDocument = require('pdfkit');
 require('dotenv').config();
-
-const { google } = require('googleapis');
-const { OAuth2Client } = require('google-auth-library');
-
-// Set up Google OAuth2 client
-const oAuth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET
-);
-
-// Set access token if available
-oAuth2Client.setCredentials({
-  access_token:  process.env.ACCESS_TOKEN,
-  refresh_token:  process.env.REFRESH_TOKEN,
-});
-
-// Set up the Calendar API
-const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
-
+const { authorize, createEvent , deleteEvent } = require('../helpers/calendar_apis'); 
 
 // Convert booking date to MongoDB date format (yyyy-mm-dd)
 const convertBookingDate = (value) => {
@@ -96,51 +78,53 @@ const listBookings = async (req, res) => {
 // Create a new booking
 const createBooking = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const createdBy = req.user ? req.user._id : null;
-    req.body.bookingDate = convertBookingDate(req.body.bookingDate);
-
-    const existingBooking = await Booking.find({
-      bookingDate: req.body.bookingDate,
-      venue: req.body.venue,
-    });
-  
-    if (existingBooking.length > 0) {
-      const isFullDayBooking = req.body.bookingType === 'full day';
-      const hasFullDayBooking = existingBooking.some(booking => booking.bookingType === 'full day');
-      const hasSameBookingType = existingBooking.some(booking => booking.bookingType === req.body.bookingType);
-
-      if (isFullDayBooking || hasFullDayBooking || hasSameBookingType) {
-        return res.status(400).json({ error: 'Booking not available for the specified conditions.' });
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+          return res.status(400).json({ errors: errors.array() });
       }
-    }
 
-    const newBooking = await Booking.create({ ...req.body, createdBy });
+      const createdBy = req.user ? req.user._id : null;
+      req.body.bookingDate = convertBookingDate(req.body.bookingDate);
 
-    // Create event on Google Calendar
-    const eventId = await createEventOnCalendar(newBooking);
+      const existingBooking = await Booking.find({
+          bookingDate: req.body.bookingDate,
+          venue: req.body.venue,
+      });
 
-    // Save the event ID in MongoDB
-    newBooking.googleEventId = 123;
-    await newBooking.save();
+      if (existingBooking.length > 0) {
+          const isFullDayBooking = req.body.bookingType === 'full day';
+          const hasFullDayBooking = existingBooking.some(booking => booking.bookingType === 'full day');
+          const hasSameBookingType = existingBooking.some(booking => booking.bookingType === req.body.bookingType);
 
-    await Log.create({
-      description: `Created a new booking with ID ${newBooking._id}`,
-      status: 'booking',
-      createdBy,
-      bookingId: newBooking._id,
-    });
+          if (isFullDayBooking || hasFullDayBooking || hasSameBookingType) {
+              return res.status(400).json({ error: 'Booking not available for the specified conditions.' });
+          }
+      }
 
-    return res.status(201).json({ data: newBooking, message: "Booking Created" });
+      const newBooking = await Booking.create({ ...req.body, createdBy });
+
+      // Authorize and create event on Google Calendar
+      const auth = await authorize();
+      const eventId = await createEvent(auth, newBooking);
+
+      // Save the event ID in MongoDB
+      newBooking.googleEventId = eventId;
+      await newBooking.save();
+
+      await Log.create({
+          description: `Created a new booking with ID ${newBooking._id}`,
+          status: 'booking',
+          createdBy,
+          bookingId: newBooking._id,
+      });
+
+      return res.status(201).json({ data: newBooking, message: "Booking Created" });
   } catch (error) {
-    console.error(error);
-    return res.status(400).json({ error: error.message });
+      console.error(error);
+      return res.status(400).json({ error: error.message });
   }
 };
+
 
 // Update booking
 const updateBooking = async (req, res) => {
@@ -214,28 +198,32 @@ const changeBookingStatus = async (req, res) => {
 // delete booking
 const deleteBooking = async (req, res) => {
   try {
-    const { id } = req.params;
+      const { id } = req.params;
 
-    // Find and delete the booking
-    const deletedBooking = await Booking.findByIdAndDelete(id);
+      // Find the booking to get the googleEventId
+      const booking = await Booking.findById(id);
 
-    if (!deletedBooking) {
-      return res.status(404).json({ error: 'Booking not found' });
-    }
+      if (!booking) {
+          return res.status(404).json({ error: 'Booking not found' });
+      }
 
-    await deleteCalendarEvent(deletedBooking.googleEventId);
+      // Delete the booking from the database
+      const deletedBooking = await Booking.findByIdAndDelete(id);
 
-    await Log.create({
-      description: `Deleted booking with ID ${deletedBooking._id}`,
-      status: 'booking',
-      createdBy: req.user ? req.user._id : null,
-      bookingId: deletedBooking._id,
-    });
+      // Delete the corresponding event from Google Calendar
+      await deleteEvent(booking.googleEventId);
 
-    return res.json({ success: true });
+      await Log.create({
+          description: `Deleted booking with ID ${deletedBooking._id}`,
+          status: 'booking',
+          createdBy: req.user ? req.user._id : null,
+          bookingId: deletedBooking._id,
+      });
+
+      return res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting booking:', error);
-    return res.status(400).json({ error: error.message });
+      console.error('Error deleting booking:', error);
+      return res.status(400).json({ error: error.message });
   }
 };
 
