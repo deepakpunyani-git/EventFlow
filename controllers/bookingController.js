@@ -211,7 +211,8 @@ const deleteBooking = async (req, res) => {
       const deletedBooking = await Booking.findByIdAndDelete(id);
 
       // Delete the corresponding event from Google Calendar
-      await deleteEvent(booking.googleEventId);
+      const auth = await authorize();
+      const eventId = await deleteEvent(auth, newBooking);
 
       await Log.create({
           description: `Deleted booking with ID ${deletedBooking._id}`,
@@ -276,35 +277,6 @@ const generateBookingPDF = async (req, res) => {
   }
 };
 
-
-const createEventOnCalendar = async (booking) => {
-  try {
-    const event = {
-      summary: `${booking.clientName} - ${booking.phoneNumber}`,
-      description: booking.details,
-      start: {
-        dateTime: booking.bookingDate,
-        timeZone: 'Asia/Kolkata',
-      },
-      end: {
-        dateTime: booking.bookingEndDate, 
-        timeZone: 'Asia/Kolkata',
-      },
-    };
-
-    const response = await calendar.events.insert({
-        calendarId: 'primary',
-        requestBody: event,
-    });
-
-    console.log(response);
-
-    return response.data.id;
-  } catch (error) {
-    console.error('Error creating event:', error);
-    throw new Error('Failed to create event on Google Calendar');
-  }
-};
 
 
 module.exports = {

@@ -8,8 +8,8 @@ const SCOPES = process.env.SCOPES.split(',');
 const CALENDAR_ID = process.env.CALENDAR_ID;
 const secretsDirectory = process.env.secretsDirectory;
 
-const TOKEN_PATH = path.join(process.cwd(), 'token.json');
-const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
+const TOKEN_PATH = path.join(secretsDirectory, 'token.json');
+const CREDENTIALS_PATH = path.join(secretsDirectory, 'credentials.json');
 
 async function loadSavedCredentialsIfExist() {
     try {
