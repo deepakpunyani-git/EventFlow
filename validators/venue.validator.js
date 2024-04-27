@@ -2,6 +2,7 @@ const { body , query ,validationResult } = require('express-validator');
 
 const createVenueValidator = [
   body('name').isString().notEmpty(),
+  body('amount').notEmpty().withMessage('Amount is required').isNumeric().withMessage('Amount must be a number'),
   body('status').isString().notEmpty().isIn(['active', 'inactive']).withMessage('Invalid status value')
 ];
 

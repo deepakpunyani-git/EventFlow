@@ -7,7 +7,7 @@
  *       properties:
  *         name:
  *           type: string
-*          totalAmount:
+*          amount:
  *           type: number
  *         status:
  *           type: string
