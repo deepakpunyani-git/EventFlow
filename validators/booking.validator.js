@@ -3,12 +3,8 @@ const moment = require('moment');
 
 
 const createBookingValidator = [
-  body('clientName').notEmpty().withMessage('Client name is required'),
-  body('email').notEmpty().withMessage('Email is required').isEmail().withMessage('Invalid email format'),
-  body('phoneNumber')
-  .notEmpty().withMessage('Phone Number is required')
-  .matches(/^\d{3}-\d{3}-\d{4}$/).withMessage('Invalid phone number format. Use xxx-xxx-xxxx'),
-  body('totalAmount').notEmpty().withMessage('Total amount is required').isNumeric().withMessage('Total amount must be a number'),
+  body('clientId').notEmpty().withMessage('client is required').isMongoId().withMessage('Invalid client ID'),
+  body('finalAmount').notEmpty().withMessage('Final amount is required').isNumeric().withMessage('Final amount must be a number'),
   body('details').optional(),
   body('bookingDate').notEmpty().withMessage('Date is required').custom((value) => {
     const regex = /^\d{2}-\d{2}-\d{4}$/;
@@ -36,20 +32,25 @@ const createBookingValidator = [
   .isIn(['morning', 'evening', 'full day']).withMessage('Invalid booking type'),  
   body('eventType').notEmpty().withMessage('Event type is required').isMongoId().withMessage('Invalid event type ID'),
   body('venue').notEmpty().withMessage('Venue is required').isMongoId().withMessage('Invalid venue ID'),
+  body('dacor').notEmpty().withMessage('dacor is required').isMongoId().withMessage('Invalid dacor ID'),
+  body('cateringPlan').notEmpty().withMessage('cateringPlan is required').isMongoId().withMessage('Invalid cateringPlan ID'),
+
 ];
 
 const updateBookingValidator = [
-  body('clientName').notEmpty().withMessage('Client name is required'),
-  body('email').notEmpty().withMessage('Email is required').isEmail().withMessage('Invalid email format'),
-  body('phoneNumber')
-  .notEmpty().withMessage('Phone Number is required')
-  .matches(/^\d{3}-\d{3}-\d{4}$/).withMessage('Invalid phone number format. Use xxx-xxx-xxxx'),  body('totalAmount').notEmpty().withMessage('Total amount is required').isNumeric().withMessage('Total amount must be a number'),
+  body('clientId').notEmpty().withMessage('client is required').isMongoId().withMessage('Invalid client ID'), 
+  body('finalAmount').notEmpty().withMessage('Final amount is required').isNumeric().withMessage('Final amount must be a number'),
   body('details').optional(),
   body('eventType').notEmpty().withMessage('Event type is required').isMongoId().withMessage('Invalid event type ID'),
+  body('dacor').notEmpty().withMessage('dacor is required').isMongoId().withMessage('Invalid dacor ID'),
+  body('cateringPlan').notEmpty().withMessage('cateringPlan is required').isMongoId().withMessage('Invalid cateringPlan ID'),
+
 ];
 
 const changeStatusValidator = [
   body('status').notEmpty().withMessage('Status is required'),
+  body('status_details').notEmpty().withMessage('Status is required'),
+
 ];
 
 const deleteBookingValidator = [
@@ -57,9 +58,8 @@ const deleteBookingValidator = [
 ];
 
 const listBookingsValidator = [
-  query('status').optional().isIn(['pending', 'confirmed', 'completed']).withMessage('Invalid status'),
-  query('clientName').optional(),
-  query('phoneNumber').optional(),
+  query('status').optional().isIn(['booked', 'cancelled']).withMessage('Invalid status'),
+  query('clientId').optional(),
   query('bookingType').optional(),
   query('venue').optional(),
   query('fromDate').optional().isISO8601().toDate(),

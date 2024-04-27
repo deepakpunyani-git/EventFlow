@@ -7,7 +7,7 @@
  *       properties:
  *         name:
  *           type: string
-*          amount:
+ *         amount:  # Fixed indentation here
  *           type: number
  *         status:
  *           type: string

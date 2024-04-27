@@ -7,6 +7,6 @@ const cateringPlanSchema = new mongoose.Schema({
   status: { type: String, enum: ['active', 'inactive'], default: 'active' }
 });
 
-const EventFlowCateringPlan = mongoose.model('EventFlowCateringPlan', cateringPlanSchema);
+const EventFlowCateringPlan = mongoose.model('EventFlow-CateringPlan', cateringPlanSchema);
 
 module.exports = EventFlowCateringPlan;

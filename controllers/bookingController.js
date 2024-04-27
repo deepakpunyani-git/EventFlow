@@ -15,13 +15,12 @@ const convertBookingDate = (value) => {
 
 const listBookings = async (req, res) => {
   try {
-    const { status, clientName, phoneNumber, bookingType, venue, fromDate, toDate, page, limit, sortBy, sortOrder } = req.query;
+    const { status, clientId, bookingType, venue, fromDate, toDate, page, limit, sortBy, sortOrder } = req.query;
 
     const filter = {};
 
     if (status) filter.status = status;
-    if (clientName) filter.clientName = clientName;
-    if (phoneNumber) filter.phoneNumber = phoneNumber;
+    if (clientId) filter.clientId = clientId;
     if (bookingType) filter.bookingType = bookingType;
     if (venue) filter.venue = venue;
     if (fromDate || toDate) {
@@ -36,10 +35,13 @@ const listBookings = async (req, res) => {
     const skip = (pageNumber - 1) * limitNumber;
 
     const bookingsQuery = Booking.find(filter)
-      .select('clientName email phoneNumber details bookingDate eventType bookingType receivedAmount totalAmount venue status')
+      .select('clientId details bookingDate eventType bookingType receivedAmount totalAmount venue status')
       .populate('createdBy', 'firstname lastname')
       .populate('venue', 'name')
-      .populate('eventType', 'name');
+      .populate('clientId', 'Clientname phoneNumber')
+      .populate('eventType', 'name')
+      .populate('cateringPlan', 'name')
+      .populate('dacor', 'name');
 
     if (sortBy) {
       const sortFields = sortBy.split(',').map(field => field.trim());
@@ -100,7 +102,16 @@ const createBooking = async (req, res) => {
           }
       }
 
-      const newBooking = await Booking.create({ ...req.body, createdBy });
+      const venueDetails = await Venue.findById(req.body.venue);
+      const cateringPlanDetails = await CateringPlan.findById(req.body.cateringPlan);
+      const decorDetails = await Decor.findById(req.body.decor);
+      const finalAmount = req.body.finalAmount;
+
+      // Calculate the total amount
+      let totalAmount = venueDetails.amount + cateringPlanDetails.price + decorDetails.price;
+      let discount = totalAmount - finalAmount;
+
+      const newBooking = await Booking.create({ ...req.body, createdBy, totalAmount: totalAmount,discount: discount });
       await Log.create({
           description: `Created a new booking with ID ${newBooking._id}`,
           status: 'booking',
@@ -130,10 +141,25 @@ const updateBooking = async (req, res) => {
     if (!booking) {
       return res.status(404).json({ error: 'Booking not found' });
     }
-
+    const venueDetails = await Venue.findById(booking.venue);
+    const cateringPlanDetails = await CateringPlan.findById(req.body.cateringPlan);
+    const decorDetails = await Decor.findById(req.body.decor);
+    const finalAmount = req.body.finalAmount;
+    
+    // Calculate the total amount
+    let totalAmount = venueDetails.amount + cateringPlanDetails.price + decorDetails.price;
+    let discount = totalAmount - finalAmount;
+    
     await Booking.updateOne(
       { _id: id },
-      { $set: { ...req.body, updatedBy: req.user ? req.user._id : null } }
+      { 
+        $set: { 
+          ...req.body, 
+          updatedBy: req.user ? req.user._id : null,
+          totalAmount: totalAmount,
+          discount: discount
+        } 
+      }
     );
 
     await Log.create({

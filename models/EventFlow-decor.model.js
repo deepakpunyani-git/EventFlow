@@ -7,6 +7,6 @@ const decorSchema = new mongoose.Schema({
   status: { type: String, enum: ['active', 'inactive'], default: 'active' }
 });
 
-const EventFlowDecor = mongoose.model('EventFlowDecor', decorSchema);
+const EventFlowDecor = mongoose.model('EventFlow-Decor', decorSchema);
 
 module.exports = EventFlowDecor;

@@ -11,6 +11,6 @@ const clientSchema = new mongoose.Schema({
     dateUpdated: { type: Date }
 });
 
-const Client = mongoose.model('Client', clientSchema);
+const Client = mongoose.model('EventFlow-Client', clientSchema);
 
 module.exports = Client;
