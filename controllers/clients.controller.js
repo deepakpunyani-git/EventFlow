@@ -34,13 +34,11 @@ exports.updateClient = async (req, res) => {
         const clientId = req.params.id;
         const { clientName, email, phoneNumber, address, updatedBy } = req.body;
 
-        // Find the existing client
         const existingClient = await Client.findById(clientId);
         if (!existingClient) {
             return res.status(404).json({ error: 'Client not found' });
         }
 
-        // If the phone number is being updated, check for uniqueness
         if (phoneNumber !== existingClient.phoneNumber) {
             const isPhoneNumberTaken = await Client.exists({ phoneNumber });
             if (isPhoneNumberTaken) {
@@ -48,7 +46,6 @@ exports.updateClient = async (req, res) => {
             }
         }
 
-        // Update the client
         const updatedClient = await Client.findByIdAndUpdate(clientId, {
             clientName,
             email,
@@ -82,3 +79,28 @@ exports.deleteClient = async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 };
+
+exports.getClients = async (req, res) => {
+    try {
+        const { query, page = 1, limit = 10, sort } = req.query;
+
+        const filter = {
+            $or: [
+                { clientName: { $regex: query, $options: 'i' } },
+                { phoneNumber: { $regex: query, $options: 'i' } }
+            ]
+        };
+
+        const options = {
+            sort: sort ? { clientName: sort } : {},
+            limit: parseInt(limit),
+            skip: (page - 1) * limit
+        };
+
+        const clients = await Client.find(filter, null, options);
+        res.status(200).json({ success: true, data: clients });
+    } catch (error) {
+        res.status(400).json({ success: false, error: error.message });
+    }
+};
+

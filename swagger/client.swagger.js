@@ -3,52 +3,56 @@
  * /clients:
  *   post:
  *     summary: Create a new client
- *     description: Creates a new client with the provided details
+ *     tags: [Clients]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               clientName:
- *                 type: string
- *                 required: true
- *               email:
- *                 type: string
- *               phoneNumber:
- *                 type: string
- *                 required: true
- *               address:
- *                 type: string
- *                 required: true
+ *             $ref: '#/components/schemas/Client'
  *     responses:
  *       '201':
- *         description: Created
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 _id:
- *                   type: string
- *                 clientName:
- *                   type: string
- *                 email:
- *                   type: string
- *                 phoneNumber:
- *                   type: string
- *                 address:
- *                   type: string
+ *         description: Successful response
  *       '400':
  *         description: Bad Request
+ *
+ *   get:
+ *     summary: Search clients by name or phone number
+ *     tags: [Clients]
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *         description: Search query by name or phone number
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Number of items per page
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *         description: Sort clients by name (asc or desc)
+ *     responses:
+ *       '200':
+ *         description: Successful response
+ *       '400':
+ *         description: Bad Request
+ *
+ * /clients/{id}:
  *   put:
- *     summary: Update an existing client
- *     description: Updates an existing client with the provided details
+ *     summary: Update an existing client by ID
+ *     tags: [Clients]
  *     parameters:
  *       - in: path
  *         name: id
- *         description: ID of the client to update
  *         required: true
  *         schema:
  *           type: string
@@ -57,39 +61,25 @@
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               clientName:
- *                 type: string
- *               email:
- *                 type: string
- *               phoneNumber:
- *                 type: string
- *               address:
- *                 type: string
+ *             $ref: '#/components/schemas/Client'
  *     responses:
  *       '200':
- *         description: OK
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Client'
+ *         description: Successful response
  *       '404':
- *         description: Not Found
+ *         description: Error
+ *
  *   delete:
- *     summary: Delete a client
- *     description: Deletes a client by ID
+ *     summary: Delete an existing client by ID
+ *     tags: [Clients]
  *     parameters:
  *       - in: path
  *         name: id
- *         description: ID of the client to delete
  *         required: true
  *         schema:
  *           type: string
  *     responses:
  *       '200':
- *         description: OK
+ *         description: Successful response
  *       '404':
- *         description: Not Found
+ *         description: Error
  */
-
