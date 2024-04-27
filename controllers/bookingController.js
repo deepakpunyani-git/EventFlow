@@ -3,7 +3,6 @@ const { validationResult } = require('express-validator');
 const Log = require('../models/EventFlow-logs');
 const PDFDocument = require('pdfkit');
 require('dotenv').config();
-const { authorize, createEvent , deleteEvent } = require('../helpers/calendar_apis'); 
 
 // Convert booking date to MongoDB date format (yyyy-mm-dd)
 const convertBookingDate = (value) => {
@@ -102,15 +101,6 @@ const createBooking = async (req, res) => {
       }
 
       const newBooking = await Booking.create({ ...req.body, createdBy });
-
-      // Authorize and create event on Google Calendar
-      const auth = await authorize();
-      const eventId = await createEvent(auth, newBooking);
-
-      // Save the event ID in MongoDB
-      newBooking.googleEventId = eventId;
-      await newBooking.save();
-
       await Log.create({
           description: `Created a new booking with ID ${newBooking._id}`,
           status: 'booking',
@@ -209,10 +199,6 @@ const deleteBooking = async (req, res) => {
 
       // Delete the booking from the database
       const deletedBooking = await Booking.findByIdAndDelete(id);
-
-      // Delete the corresponding event from Google Calendar
-      const auth = await authorize();
-      const eventId = await deleteEvent(auth, newBooking);
 
       await Log.create({
           description: `Deleted booking with ID ${deletedBooking._id}`,

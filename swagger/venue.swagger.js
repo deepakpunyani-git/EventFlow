@@ -7,6 +7,8 @@
  *       properties:
  *         name:
  *           type: string
+*          totalAmount:
+ *           type: number
  *         status:
  *           type: string
  *           enum: [active, inactive]

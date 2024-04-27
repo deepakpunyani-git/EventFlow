@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(routes);
 
 app.get("/", (req, res) => {
-  res.send('Demo APIs - EventFlow')
+  res.send('Demo APIs - EventFlow. <a href="/api-docs/">Test APIs here</a>.');
 })
 
 // Swagger setup

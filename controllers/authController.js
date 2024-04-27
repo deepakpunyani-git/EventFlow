@@ -4,9 +4,6 @@ const bcrypt = require('bcrypt');
 const EventFlowUser = require('../models/EventFlow-users');
 const dotenv = require('dotenv');
 dotenv.config();
-const sgMail = require('@sendgrid/mail');
-const sendgrid = process.env.SENDGRID_API_KEY;
-sgMail.setApiKey(sendgrid.trim());
 
 const saltRounds = parseInt(process.env.saltRounds);
 
@@ -65,14 +62,6 @@ exports.adminForgotPassword = async (req, res) => {
             text: `Your OTP for email verification is: ${otp}`,
             html: `<p>Your OTP for email verification is: <strong>${otp}</strong></p>`,
         };
-
-      // Send the email
-      // await sgMail.send(emailMsg) .then(() => {
-      //   console.log('Email sent successfully');
-      // })
-      // .catch((error) => {
-      //   console.error('Error sending email:', error.response.body);
-      // });;
 
       res.status(200).json({ message: 'OTP sent successfully' });
     } catch (error) {
