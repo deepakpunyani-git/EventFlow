@@ -16,34 +16,37 @@ app.use(express.urlencoded({ extended: true }));
 app.use(routes);
 
 app.get("/", async (req, res) => {
-  try {
-    const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.EMAIL_PORT, // Should be process.env.EMAIL_PORT
-      secure: true,
-      auth: {
-        user: process.env.EMAIL_USERNAME,
-        pass: process.env.EMAIL_PASSWORD,
-      }
-    });
-    const  to = 'deepakpunyani@ymail.com';
-    const subject = "test";
-    const content = "asdasdadadasdsadsad";
-    const info = await transporter.sendMail({
-      to: to,
-      subject: subject,
-      text: content,
-      html: content,
-    });
 
-    console.log(info.envelope);
-    console.log("Message sent: %s", info.messageId);
+  // Create a transporter with AOL SMTP settings
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT, 
+    secure:  process.env.EMAIL_secure, 
+    auth: {
+        user: process.env.EMAIL_USER, // Remove any invisible characters
+        pass: process.env.EMAIL_PASSWORD // Provide your AOL Mail app password
+    }
+  });
 
-    res.send('Demo APIs - EventFlow. <a href="/api-docs/">Test APIs here</a>.');
-  } catch (error) {
-    console.error("Error sending email:", error);
-    res.status(500).send("Internal Server Error");
+
+// Define email message
+const mailOptions = {
+  from: 'Deepak dpunyani@​aol.com',
+  to: 'aadi.punyani@gmail.com',
+  subject: 'Test Email',
+  text: 'This is a test email from Node.js using AOL Mail.'
+};
+
+// Send email
+transporter.sendMail(mailOptions, (error, info) => {
+  if (error) {
+      console.error('Error sending email:', error);
+  } else {
+      console.log('Email sent:', info.response);
   }
+});
+res.send('Demo APIs - EventFlow. <a href="/api-docs/">Test APIs here</a>.');
+
 });
 
 // Swagger setup
