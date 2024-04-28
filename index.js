@@ -21,13 +21,13 @@ app.get("/", async (req, res) => {
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT, 
-    secure:  process.env.EMAIL_secure, 
+    secure: process.env.EMAIL_secure,
+    debug: true, 
     auth: {
         user: process.env.EMAIL_USER, // Remove any invisible characters
         pass: process.env.EMAIL_PASSWORD // Provide your AOL Mail app password
     }
   });
-
 
 // Define email message
 const mailOptions = {
