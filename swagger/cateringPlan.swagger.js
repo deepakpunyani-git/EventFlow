@@ -1,9 +1,51 @@
 /**
  * @swagger
+ * components:
+ *   schemas:
+ *     Catering Plan:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *         description:
+ *           type: string
+ *         price:  # Fixed indentation here
+ *           type: number
+ *         status:
+ *           type: string
+ *           enum: [active, inactive]
+ *       required:
+ *         - name
+ *         - status
+ * 
+ */
+
+/**
+ * @swagger
+ * /cateringPlans:
+ *   get:
+ *     summary: List all Catering Plans
+ *     tags: [cateringPlan]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, inactive]
+ *         description: Filter Catering Plans by status (admin only)
+ *     responses:
+ *       '200':
+ *         description: Successful response
+ *       '404':
+ *         description: Error
+ */
+
+/**
+ * @swagger
  * /cateringPlan:
  *   post:
- *     summary: Create a new catering plan
- *     tags: [Catering Plans]
+ *     summary: Create a new catering plans
+ *     tags: [cateringPlan]
  *     requestBody:
  *       required: true
  *       content:
@@ -11,28 +53,18 @@
  *           schema:
  *             $ref: '#/components/schemas/CateringPlan'
  *     responses:
- *       '201':
- *         description: Successful response
- *       '400':
- *         description: Bad Request
- *
- *   get:
- *     summary: Get all catering plans
- *     tags: [Catering Plans]
- *     responses:
  *       '200':
  *         description: Successful response
- *         schema:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/CateringPlan'
- *       '400':
- *         description: Bad Request
- *
+ *       '404':
+ *         description: Error
+ */
+
+/**
+ * @swagger
  * /cateringPlan/{id}:
  *   put:
- *     summary: Update an existing catering plan by ID
- *     tags: [Catering Plans]
+ *     summary: Update an existing Catering Plan by _id
+ *     tags: [cateringPlan]
  *     parameters:
  *       - in: path
  *         name: id
@@ -50,10 +82,14 @@
  *         description: Successful response
  *       '404':
  *         description: Error
- *
+ */
+
+/**
+ * @swagger
+ * /cateringPlan/{id}:
  *   delete:
- *     summary: Delete an existing catering plan by ID
- *     tags: [Catering Plans]
+ *     summary: Delete an existing Catering Plan by _id
+ *     tags: [cateringPlan]
  *     parameters:
  *       - in: path
  *         name: id

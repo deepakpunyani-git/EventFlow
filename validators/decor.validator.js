@@ -1,4 +1,4 @@
-const { body, validationResult } = require('express-validator');
+const { body, validationResult , query} = require('express-validator');
 
 exports.validateDecor = [
     body('name').notEmpty().withMessage('Name is required'),
@@ -11,3 +11,18 @@ exports.validateDecor = [
         next();
     }
 ];
+
+
+exports.listDecorValidator = [
+    query('status')
+    .optional()
+    .isIn(['active', 'inactive'])
+    .withMessage('Status must be either "active" or "inactive"'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    next();
+  },
+  ];

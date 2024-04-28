@@ -1,5 +1,32 @@
 /**
  * @swagger
+ * components:
+ *   schemas:
+ *     Client:
+ *       type: object
+ *       properties:
+ *         clientName:
+ *           type: string
+ *           description: The name of the client.
+ *         email:
+ *           type: string
+ *           format: email
+ *           description: The email address of the client.
+ *         phoneNumber:
+ *           type: number
+ *           pattern: '^[0-9]{3}-[0-9]{3}-[0-9]{4}$'             
+ *           description: The phone number of the client in the format xxx-xxx-xxxx.
+ *         address:
+ *           type: string
+ *           description: The address of the client.
+ *       required:
+ *         - clientName
+ *         - phoneNumber
+ *         - address
+ */
+
+/**
+ * @swagger
  * /clients:
  *   post:
  *     summary: Create a new client
@@ -82,4 +109,30 @@
  *         description: Successful response
  *       '404':
  *         description: Error
+ */
+
+/**
+ * @swagger
+ * /client/{id}:
+ *   get:
+ *     summary: Get a single client by ID
+ *     tags: [Clients]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the client to retrieve
+ *     responses:
+ *       '200':
+ *         description: Successful response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Client'
+ *       '404':
+ *         description: Client not found
+ *       '500':
+ *         description: Internal Server Error
  */

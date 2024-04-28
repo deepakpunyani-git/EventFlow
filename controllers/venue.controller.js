@@ -5,7 +5,23 @@ const Venue = require('../models/EventFlow-venue');
 // List all venues
 const listVenues = async (req, res) => {
   try {
-    const venues = await Venue.find().sort({ name: 1 });
+
+
+    const isAdmin = req.user && req.user.usertype === 'admin';
+
+    let query = { status: 'active' };
+
+    if (isAdmin) {
+      if(req.query.status !== undefined){
+        query = {status: req.query.status};
+      }else{
+        query = {};
+
+      }
+    }
+
+
+    const venues = await Venue.find(query).sort({ name: 1 });
     return res.json(venues);
   } catch (error) {
     return res.status(500).json({ error: error.message });
