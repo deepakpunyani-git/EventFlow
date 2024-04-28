@@ -31,7 +31,7 @@ app.get("/", async (req, res) => {
 
 // Define email message
 const mailOptions = {
-  from: 'Deepak dpunyani@​aol.com',
+  from: 'Deepak <dpunyani@​aol.com>',
   to: 'aadi.punyani@gmail.com',
   subject: 'Test Email',
   text: 'This is a test email from Node.js using AOL Mail.'
