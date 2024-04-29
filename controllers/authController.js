@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const EventFlowUser = require('../models/EventFlow-users');
 const dotenv = require('dotenv');
 dotenv.config();
+const nodemailer = require("nodemailer");
 
 const saltRounds = parseInt(process.env.saltRounds);
 
@@ -50,18 +51,39 @@ exports.adminForgotPassword = async (req, res) => {
       if (!admin) {
         return res.status(404).json({ message: 'Admin not found with this email' });
       }
-      //const otp = generateOTP();
-      const otp = 123456;
+      const otp = generateOTP();
       admin.email_otp = otp;
       admin.save();
 
-        const emailMsg = {
+        const mailOptions = {
             to: email,
-            from: process.env.email,
+            from: 'Deepak <' + process.env.EMAIL_HOST + '>',
             subject: 'OTP Email',
             text: `Your OTP for email verification is: ${otp}`,
             html: `<p>Your OTP for email verification is: <strong>${otp}</strong></p>`,
         };
+
+         // Create a transporter with AOL SMTP settings
+          const transporter = nodemailer.createTransport({
+            host: process.env.EMAIL_HOST,
+            port: process.env.EMAIL_PORT, 
+            secure: false,
+            debug: true, 
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASSWORD 
+            }
+          });
+
+          // Send email
+          transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error sending email:', error);
+            } else {
+                console.log('Email sent:', info.response);
+            }
+          });
+  
 
       res.status(200).json({ message: 'OTP sent successfully' });
     } catch (error) {

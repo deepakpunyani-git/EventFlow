@@ -9,7 +9,6 @@ const connectDB = require('./db');
 const PORT = process.env.PORT || 3000;
 const app = express();
 const routes = require('./routes/index');
-const nodemailer = require("nodemailer");
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -17,35 +16,7 @@ app.use(routes);
 
 app.get("/", async (req, res) => {
 
-  // Create a transporter with AOL SMTP settings
-  const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT, 
-    secure: process.env.EMAIL_secure,
-    debug: true, 
-    auth: {
-        user: process.env.EMAIL_USER, // Remove any invisible characters
-        pass: process.env.EMAIL_PASSWORD // Provide your AOL Mail app password
-    }
-  });
-
-// Define email message
-const mailOptions = {
-  from: 'Deepak <dpunyani@​aol.com>',
-  to: 'aadi.punyani@gmail.com',
-  subject: 'Test Email',
-  text: 'This is a test email from Node.js using AOL Mail.'
-};
-
-// Send email
-transporter.sendMail(mailOptions, (error, info) => {
-  if (error) {
-      console.error('Error sending email:', error);
-  } else {
-      console.log('Email sent:', info.response);
-  }
-});
-res.send('Demo APIs - EventFlow. <a href="/api-docs/">Test APIs here</a>.');
+  res.send('Demo APIs - EventFlow. <a href="/api-docs/">Test APIs here</a>.');
 
 });
 
