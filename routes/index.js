@@ -9,6 +9,7 @@ const payments = require('./payment.routes');
 const clients = require('./client.route');
 const cateringPlan = require('./cateringPlan.route');
 const decor = require('./decor.route');
+const dashboard = require('./dashboard.route');
 
 router.use(auth);
 router.use(venue);
@@ -19,5 +20,6 @@ router.use(payments);
 router.use(clients);
 router.use(cateringPlan);
 router.use(decor);
+router.use(dashboard);
 
 module.exports = router;

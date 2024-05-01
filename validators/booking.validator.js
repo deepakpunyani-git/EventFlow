@@ -1,10 +1,10 @@
 const { body, query } = require('express-validator');
 const moment = require('moment');
+const validator = require('validator');
 
 
 const createBookingValidator = [
-  body('clientId').notEmpty().withMessage('client is required').isMongoId().withMessage('Invalid client ID'),
-  body('finalAmount').notEmpty().withMessage('Final amount is required').isNumeric().withMessage('Final amount must be a number'),
+  body('clientId').notEmpty().withMessage('Client is required').isMongoId().withMessage('Invalid client ID'),
   body('details').optional(),
   body('bookingDate').notEmpty().withMessage('Date is required').custom((value) => {
     const regex = /^\d{2}-\d{2}-\d{4}$/;
@@ -26,29 +26,53 @@ const createBookingValidator = [
 
     return true;
   }),
-  
   body('bookingType')
-  .notEmpty().withMessage('Booking type is required')
-  .isIn(['morning', 'evening', 'full day']).withMessage('Invalid booking type'),  
+    .notEmpty().withMessage('Booking type is required')
+    .isIn(['morning', 'evening', 'full day']).withMessage('Invalid booking type'),  
   body('eventType').notEmpty().withMessage('Event type is required').isMongoId().withMessage('Invalid event type ID'),
   body('venue').notEmpty().withMessage('Venue is required').isMongoId().withMessage('Invalid venue ID'),
-  body('dacor').notEmpty().withMessage('dacor is required').isMongoId().withMessage('Invalid dacor ID'),
-  body('cateringPlan').notEmpty().withMessage('cateringPlan is required').isMongoId().withMessage('Invalid cateringPlan ID'),
+  body('dacor').optional().custom((value, { req }) => {
+    if (value !== '' && !validator.isMongoId(value)) {
+      throw new Error('Invalid dacor ID');
+    }
+    return true;
+  }),
+  body('cateringPlan').optional().custom((value, { req }) => {
+    if (value !== '' && !validator.isMongoId(value)) {
+      throw new Error('Invalid cateringPlan ID');
+    }
+    return true;
+  }),
+  body('venueAmount').optional().isNumeric().withMessage('Venue amount must be a number'),
+  body('dacorAmount').optional().isNumeric().withMessage('Dacor amount must be a number'),
+  body('cateringPlanAmount').optional().isNumeric().withMessage('Catering Plan amount must be a number'),
 
 ];
 
 const updateBookingValidator = [
   body('clientId').notEmpty().withMessage('client is required').isMongoId().withMessage('Invalid client ID'), 
-  body('finalAmount').notEmpty().withMessage('Final amount is required').isNumeric().withMessage('Final amount must be a number'),
   body('details').optional(),
   body('eventType').notEmpty().withMessage('Event type is required').isMongoId().withMessage('Invalid event type ID'),
-  body('dacor').notEmpty().withMessage('dacor is required').isMongoId().withMessage('Invalid dacor ID'),
-  body('cateringPlan').notEmpty().withMessage('cateringPlan is required').isMongoId().withMessage('Invalid cateringPlan ID'),
+  body('dacor').optional().custom((value, { req }) => {
+    if (value !== '' && !validator.isMongoId(value)) {
+      throw new Error('Invalid dacor ID');
+    }
+    return true;
+  }),
+  body('cateringPlan').optional().custom((value, { req }) => {
+    if (value !== '' && !validator.isMongoId(value)) {
+      throw new Error('Invalid cateringPlan ID');
+    }
+    return true;
+  }),
+  body('venueAmount').optional().isNumeric().withMessage('Venue amount must be a number'),
+  body('dacorAmount').optional().isNumeric().withMessage('Dacor amount must be a number'),
+  body('cateringPlanAmount').optional().isNumeric().withMessage('Catering Plan amount must be a number'),
 
 ];
 
 const changeStatusValidator = [
-  body('status').notEmpty().withMessage('Status is required'),
+  body('status').notEmpty().withMessage('Status is required').isIn(['booked', 'cancelled']).withMessage('Status must be either "booked" or "cancelled"'),
   body('status_details').notEmpty().withMessage('Status is required'),
 
 ];

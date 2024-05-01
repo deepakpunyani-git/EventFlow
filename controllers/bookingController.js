@@ -1,4 +1,9 @@
 const Booking = require('../models/EventFlow-booking');
+const EventFlowCateringPlan = require('../models/EventFlow-cateringPlan.model');
+const EventFlowDecor = require('../models/EventFlow-decor.model');
+const EventFlowVenue = require('../models/EventFlow-venue');
+const moment = require('moment');
+
 const { validationResult } = require('express-validator');
 const Log = require('../models/EventFlow-logs');
 const PDFDocument = require('pdfkit');
@@ -9,8 +14,11 @@ const convertBookingDate = (value) => {
   const [day, month, year] = value.split('-');
   
   const mongoDBDate = new Date(`${year}-${month}-${day}`);
-  
-  return mongoDBDate;
+  const dateMoment = moment(mongoDBDate, 'DD-MM-YYYY', true);
+  if (!dateMoment.isValid()) {
+    throw new Error('Invalid date format. Use dd-mm-yyyy.');
+  }
+  return dateMoment.toDate();
 };
 
 const listBookings = async (req, res) => {
@@ -79,50 +87,98 @@ const listBookings = async (req, res) => {
 // Create a new booking
 const createBooking = async (req, res) => {
   try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-          return res.status(400).json({ errors: errors.array() });
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    
+    let { clientId, details, bookingDate, bookingType, eventType, venue, dacor, cateringPlan } = req.body;
+    const createdBy = req.user ? req.user._id : null;
+    if (!req.body.dacor) {
+      dacor = null;
+    }
+
+    if (!req.body.cateringPlan) {
+      cateringPlan = null;
+    }
+   
+   
+    bookingDate = convertBookingDate(bookingDate);
+
+
+    const existingBooking = await Booking.find({
+      bookingDate: bookingDate,
+      venue: req.body.venue,
+    });
+
+
+
+    if (existingBooking.length > 0) {
+      const isFullDayBooking = req.body.bookingType === 'full day';
+      const hasFullDayBooking = existingBooking.some(booking => booking.bookingType === 'full day');
+      const hasSameBookingType = existingBooking.some(booking => booking.bookingType === req.body.bookingType);
+      const matchingBookings = existingBooking.filter(booking => booking.bookingType === req.body.bookingType);
+      console.log( matchingBookings[0]);
+      if (matchingBookings.length > 0 && matchingBookings[0].status === 'booked') {
+        return res.status(400).json({ error: 'Booking not available for the specified conditions and date.'});
+      } 
+      if (isFullDayBooking || hasFullDayBooking ) {
+          return res.status(400).json({ error: 'Booking not available for the specified conditions.'});
       }
+  }
 
-      const createdBy = req.user ? req.user._id : null;
-      req.body.bookingDate = convertBookingDate(req.body.bookingDate);
+    let venueAmount = req.body.venueAmount || 0;
+    let dacorAmount = req.body.dacorAmount || 0;
+    let cateringPlanAmount = req.body.cateringPlanAmount || 0;
 
-      const existingBooking = await Booking.find({
-          bookingDate: req.body.bookingDate,
-          venue: req.body.venue,
-      });
+    if (req.body.venue && (venueAmount == 0 || venueAmount === '')) {
+      const venueDetails = await EventFlowVenue.findById(req.body.venue);
+      venueAmount = venueDetails ? venueDetails.amount : 0;
+    }
 
-      if (existingBooking.length > 0) {
-          const isFullDayBooking = req.body.bookingType === 'full day';
-          const hasFullDayBooking = existingBooking.some(booking => booking.bookingType === 'full day');
-          const hasSameBookingType = existingBooking.some(booking => booking.bookingType === req.body.bookingType);
+    if (req.body.dacor && (dacorAmount == 0 || dacorAmount === '')) {
+      const decorDetails = await EventFlowDecor.findById(req.body.dacor);
+      dacorAmount = decorDetails ? decorDetails.price : 0;
+    }
 
-          if (isFullDayBooking || hasFullDayBooking || hasSameBookingType) {
-              return res.status(400).json({ error: 'Booking not available for the specified conditions.' });
-          }
-      }
+    if (req.body.cateringPlan && (cateringPlanAmount == 0 || cateringPlanAmount === '')) {
+      
+      const cateringPlanDetails = await EventFlowCateringPlan.findById(req.body.cateringPlan)
+      cateringPlanAmount = cateringPlanDetails ? cateringPlanDetails.price : 0;
+    }
 
-      const venueDetails = await Venue.findById(req.body.venue);
-      const cateringPlanDetails = await CateringPlan.findById(req.body.cateringPlan);
-      const decorDetails = await Decor.findById(req.body.decor);
-      const finalAmount = req.body.finalAmount;
 
-      // Calculate the total amount
-      let totalAmount = venueDetails.amount + cateringPlanDetails.price + decorDetails.price;
-      let discount = totalAmount - finalAmount;
+    let totalAmount = venueAmount + dacorAmount + cateringPlanAmount;
+    
+    const newBooking = await Booking.create({
+      clientId,
+      details,
+      bookingDate,
+      bookingType,
+      eventType,
+      venue,
+      dacor,
+      cateringPlan,
+      venueAmount,
+      dacorAmount,
+      cateringPlanAmount,
+      createdBy,
+      totalAmount,
+    });
 
-      const newBooking = await Booking.create({ ...req.body, createdBy, totalAmount: totalAmount,discount: discount });
-      await Log.create({
-          description: `Created a new booking with ID ${newBooking._id}`,
-          status: 'booking',
-          createdBy,
-          bookingId: newBooking._id,
-      });
+    await Log.create({
+      description: `Created a new booking with ID ${newBooking._id}`,
+      status: 'booking',
+      createdBy,
+      bookingId: newBooking._id,
+    });
 
-      return res.status(201).json({ data: newBooking, message: "Booking Created" });
+   return res.status(201).json({ data: newBooking, message: "Booking Created" });
   } catch (error) {
-      console.error(error);
-      return res.status(400).json({ error: error.message });
+    console.error(error);
+    return res.status(400).json({ error: error.message });
   }
 };
 
@@ -131,43 +187,72 @@ const createBooking = async (req, res) => {
 const updateBooking = async (req, res) => {
   try {
     const { id } = req.params;
+    
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
+    let { clientId, details, eventType, dacor, cateringPlan } = req.body;
+    if (!req.body.dacor) {
+      dacor = null;
+    }
 
+    if (!req.body.cateringPlan) {
+      cateringPlan = null;
+    }
+   
     const booking = await Booking.findById(id);
     if (!booking) {
       return res.status(404).json({ error: 'Booking not found' });
     }
-    const venueDetails = await Venue.findById(booking.venue);
-    const cateringPlanDetails = await CateringPlan.findById(req.body.cateringPlan);
-    const decorDetails = await Decor.findById(req.body.decor);
-    const finalAmount = req.body.finalAmount;
-    
-    // Calculate the total amount
-    let totalAmount = venueDetails.amount + cateringPlanDetails.price + decorDetails.price;
-    let discount = totalAmount - finalAmount;
-    
+
+    let venueAmount = req.body.venueAmount || 0;
+    let dacorAmount = req.body.dacorAmount || 0;
+    let cateringPlanAmount = req.body.cateringPlanAmount || 0;
+
+    if (venueAmount === 0 || venueAmount === '') {
+      venueAmount = booking.venueAmount;
+    }
+
+
+    if (req.body.dacor && (dacorAmount === 0 || dacorAmount === '')) {
+      const decorDetails = await EventFlowDecor.findById(req.body.dacor);
+
+      dacorAmount = decorDetails ? decorDetails.price : 0;
+    }
+
+    if (req.body.cateringPlan && (cateringPlanAmount === 0 || cateringPlanAmount === '')) {
+      const cateringPlanDetails = await EventFlowCateringPlan.findById(req.body.cateringPlan);
+      cateringPlanAmount = cateringPlanDetails ? cateringPlanDetails.price : 0;
+    }
+    let totalAmount = venueAmount + dacorAmount + cateringPlanAmount;
+
     await Booking.updateOne(
       { _id: id },
       { 
         $set: { 
-          ...req.body, 
+          clientId,
+          details,
+          eventType,
+          dacor,
+          cateringPlan,
+          venueAmount,
+          dacorAmount,
+          cateringPlanAmount,
+          updatedAt: new Date(),    
           updatedBy: req.user ? req.user._id : null,
           totalAmount: totalAmount,
-          discount: discount
         } 
       }
     );
 
-    await Log.create({
-      description: `Updated booking with ID ${booking._id}`,
-      status: 'booking',
-      createdBy: req.user ? req.user._id : null,
-      bookingId: booking._id,
-    });
+    // await Log.create({
+    //   description: `Updated booking with ID ${booking._id}`,
+    //   status: 'booking',
+    //   createdBy: req.user ? req.user._id : null,
+    //   bookingId: booking._id,
+    // });
 
     return res.json(booking);
   } catch (error) {
@@ -180,7 +265,7 @@ const updateBooking = async (req, res) => {
 const changeBookingStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status , status_details } = req.body;
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
@@ -189,7 +274,7 @@ const changeBookingStatus = async (req, res) => {
 
     const booking = await Booking.findByIdAndUpdate(
       id,
-      { $set: { status }, updatedBy: req.user ? req.user._id : null, dateUpdated: Date.now() },
+      { $set: { status , status_details}, updatedBy: req.user ? req.user._id : null, dateUpdated: Date.now() },
       { new: true }
     );
 
@@ -298,7 +383,7 @@ module.exports = {
   deleteBooking,
   listBookings,
   viewBooking,
-  generateBookingPDF
+  generateBookingPDF,
 };
 
 

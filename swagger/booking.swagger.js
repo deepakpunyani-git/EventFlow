@@ -5,15 +5,19 @@
  *     Booking:
  *       type: object
  *       properties:
- *         clientName:
+ *         clientId:
  *           type: string
- *         email:
+ *         venue:
  *           type: string
- *           format: email
- *         phoneNumber:
- *           type: string 
- *           default: xxx-xxx-xxxx
- *         totalAmount:
+ *         venueAmount:
+ *           type: number
+ *         dacor:
+ *           type: string
+ *         dacorAmount:
+ *           type: number
+ *         cateringPlan:
+ *           type: string
+ *         cateringPlanAmount:
  *           type: number
  *         details:
  *           type: string
@@ -25,13 +29,9 @@
  *         bookingType:
  *           type: string
  *           enum: [morning, evening, full day]
- *         venue:
- *           type: string
+ 
  *       required:
- *         - clientName
- *         - email
- *         - phoneNumber
- *         - totalAmount
+ *         - clientId
  *         - eventType
  *         - bookingDate
  *         - bookingType
@@ -45,25 +45,24 @@
  *     Booking_update:
  *       type: object
  *       properties:
- *         clientName:
+ *         clientId:
  *           type: string
- *         email:
+ *         venueAmount:
+ *           type: number
+ *         dacor:
  *           type: string
- *           format: email
- *         phoneNumber:
- *           type: string 
- *           default: xxx-xxx-xxxx
- *         totalAmount:
+ *         dacorAmount:
+ *           type: number
+ *         cateringPlan:
+ *           type: string
+ *         cateringPlanAmount:
  *           type: number
  *         details:
  *           type: string
  *         eventType:
  *           type: string
  *       required:
- *         - clientName
- *         - email
- *         - phoneNumber
- *         - totalAmount
+ *         - clientId
  *         - eventType
  */
 
@@ -240,8 +239,11 @@
  *             properties:
  *               status:
  *                 type: string
+ *               status_details:
+ *                 type: string
  *             required:
  *               - status
+ *               - status_details
  *     responses:
  *       '200':
  *         description: Successful response
