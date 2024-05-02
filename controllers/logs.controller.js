@@ -3,11 +3,19 @@ const Log = require('../models/EventFlow-logs');
 // List all logs
 const listLogs = async (req, res) => {
   try {
-    const { page = 1, limit = 10, sortBy, sortOrder, dateCreated, status } = req.query;
+    const { page = 1, limit = 10, sortBy, sortOrder, dateCreated, status, bookingId, paymentId } = req.query;
 
     const filter = {};
-    if (dateCreated) filter.dateCreated = new RegExp(dateCreated, 'i');
+    if (dateCreated) {
+      const targetDate = new Date(dateCreated);
+      filter.dateCreated = {
+        $gte: new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate()),
+        $lt: new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1)
+      };
+    }
     if (status) filter.status = status;
+    if (bookingId) filter.bookingId = bookingId;
+    if (paymentId) filter.paymentId = paymentId;
 
     const sort = {};
     if (sortBy && ['dateCreated', 'status'].includes(sortBy)) {
@@ -22,7 +30,23 @@ const listLogs = async (req, res) => {
     const logs = await Log.find(filter)
       .sort(sort)
       .skip(skip)
-      .limit(limitNumber);
+      .limit(limitNumber)
+      .populate({
+        path: 'paymentId',
+        select: 'amountType dateCreated amount paymentMode'
+      })
+      .populate({
+        path: 'createdBy',
+        select: 'username'
+      })
+      .populate({
+        path: 'bookingId',
+        select: 'bookingDate bookingType',
+        populate: {
+          path: 'clientId',
+          select: 'clientName phoneNumber'
+        }
+      });
 
     res.status(200).json(logs);
   } catch (error) {
@@ -30,7 +54,6 @@ const listLogs = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
-
 
 module.exports = {
   listLogs,
