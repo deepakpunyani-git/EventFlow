@@ -119,14 +119,6 @@
  *         bookingId:
  *           type: string
  *           description: ID of the booking associated with the payment
- *         createdAt:
- *           type: string
- *           format: date-time
- *           description: The date and time when the payment was created
- *         updatedAt:
- *           type: string
- *           format: date-time
- *           description: The date and time when the payment was last updated
  *       required:
  *         - details
  *         - paymentMode
@@ -184,8 +176,40 @@
  * /payments:
  *   get:
  *     summary: List all payments
- *     description: Retrieve a list of all payments
+ *     description: Retrieve a list of all payments with optional pagination, search, and sorting.
  *     tags: [Payments]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Number of items per page
+ *       - in: query
+ *         name: bookingId
+ *         schema:
+ *           type: string
+ *         description: Search by booking ID
+ *       - in: query
+ *         name: paymentMode
+ *         schema:
+ *           type: string
+ *         description: Search by payment mode
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: Sort by field (e.g., paymentMode, amount)
+ *       - in: query
+ *         name: sortDirection
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Sort direction (ascending or descending)
  *     responses:
  *       '200':
  *         description: OK
@@ -200,7 +224,6 @@
  *       '500':
  *         description: Internal server error
  */
-
 /**
  * @swagger
  * /payments/{paymentId}:

@@ -123,15 +123,18 @@ const updatePayment = async (req, res) => {
 
     payment.details = details || payment.details;
     payment.paymentMode = paymentMode || payment.paymentMode;
+    payment.amount = amount || payment.amount;
+    payment.updatedBy = req.user._id;
 
     const updatedPayment = await payment.save();
     await updateBookingReceivedAmount(payment.bookingId);
 
     await Log.create({
       description: `Updated payment with ID ${updatedPayment._id}`,
-      status: 'payment',
       createdBy: req.user ? req.user._id : null,
       paymentId: updatedPayment._id,
+      status: 'payment',
+
     });
 
     return res.status(200).json(updatedPayment);
@@ -142,7 +145,33 @@ const updatePayment = async (req, res) => {
 
 const listPayments = async (req, res) => {
   try {
-    const payments = await Payment.find();
+    // Pagination
+    const page = req.query.page ? parseInt(req.query.page) : 1;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+    const skipIndex = (page - 1) * limit;
+
+    // Search
+    const searchQuery = {};
+    if (req.query.bookingId) {
+      searchQuery.bookingId = req.query.bookingId;
+    }
+    if (req.query.paymentMode) {
+      searchQuery.paymentMode = req.query.paymentMode;
+    }
+
+    // Sorting
+    const sortQuery = {};
+    if (req.query.sortBy) {
+      sortQuery[req.query.sortBy] = req.query.sortDirection === 'desc' ? -1 : 1;
+    }
+
+    const payments = await Payment.find(searchQuery)
+      .populate('createdBy', 'username')
+      .populate('updatedBy', 'username')
+      .sort(sortQuery)
+      .skip(skipIndex)
+      .limit(limit);
+
     res.status(200).json(payments);
   } catch (error) {
     await Log.create({ description: `Error listing payments: ${error.message}`, status: 'booking' });
@@ -153,7 +182,9 @@ const listPayments = async (req, res) => {
 const viewPayment = async (req, res) => {
   try {
     const { paymentId } = req.params;
-    const payment = await Payment.findById(paymentId);
+    payment = await Payment.findById(paymentId)
+    .populate('createdBy', 'username')
+    .populate('updatedBy', 'username');
 
     if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
