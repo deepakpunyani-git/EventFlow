@@ -79,15 +79,10 @@
  *           type: string
  *         description: Filter by status
  *       - in: query
- *         name: clientName
+ *         name: clientId
  *         schema:
  *           type: string
- *         description: Filter by client name
- *       - in: query
- *         name: phoneNumber
- *         schema:
- *           type: string
- *         description: Filter by phone number
+ *         description: Filter by clientId
  *       - in: query
  *         name: bookingType
  *         schema:

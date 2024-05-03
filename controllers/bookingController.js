@@ -1,4 +1,6 @@
 const Booking = require('../models/EventFlow-booking');
+const Payment = require('../models/EventFlow-payments');
+
 const EventFlowCateringPlan = require('../models/EventFlow-cateringPlan.model');
 const EventFlowDecor = require('../models/EventFlow-decor.model');
 const EventFlowVenue = require('../models/EventFlow-venue');
@@ -43,7 +45,7 @@ const listBookings = async (req, res) => {
     const skip = (pageNumber - 1) * limitNumber;
 
     const bookingsQuery = Booking.find(filter)
-      .select('clientId details bookingDate eventType bookingType receivedAmount totalAmount venue status')
+      .select('_id clientId details bookingDate eventType bookingType receivedAmount totalAmount venue status')
       .populate('createdBy', 'firstname lastname')
       .populate('venue', 'name')
       .populate('clientId', 'Clientname phoneNumber')
@@ -332,9 +334,15 @@ const viewBooking = async (req, res) => {
     const { id } = req.params;
 
     const booking = await Booking.findById(id)
-      .select('clientName email phoneNumber details bookingDate eventType bookingType receivedAmount totalAmount venue status')
+      .select('_id clientId details bookingDate eventType bookingType receivedAmount totalAmount venue status')
+      .populate('createdBy', 'firstname lastname')
       .populate('venue', 'name')
+      .populate('clientId', 'Clientname phoneNumber')
       .populate('eventType', 'name')
+      .populate('cateringPlan', 'name')
+      .populate('dacor', 'name');
+
+
 
     if (!booking) {
       return res.status(404).json({ error: 'Booking not found' });
@@ -350,23 +358,103 @@ const viewBooking = async (req, res) => {
 
 const generateBookingPDF = async (req, res) => {
   try {
-    const booking = await Booking.findById(req.params.id);
+    const bookingId = req.params.id;
 
+    // Fetch booking details
+    const booking = await Booking.findById(bookingId)
+      .select('_id clientId details bookingDate eventType bookingType receivedAmount totalAmount venue status')
+      .populate('clientId', 'clientName email phoneNumber')
+      .populate('venue', 'name')
+      .populate('eventType', 'name');
+
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    // Fetch payment details for the booking, sorted by dateCreated
+    const payments = await Payment.find({ bookingId }).sort({ dateCreated: 1 });
+
+    // Create PDF document
     const doc = new PDFDocument();
 
+    // Set PDF response headers
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=${booking.clientName}_booking.pdf`);
+    res.setHeader('Content-Disposition', `attachment; filename=${booking.clientId.clientName}_booking.pdf`);
 
+    // Pipe the PDF content to response stream
     doc.pipe(res);
 
-    doc.fontSize(18).text('Booking Detail', { align: 'center' });
-    doc.fontSize(14).text(`Client Name: ${booking.clientName}`);
-    doc.fontSize(14).text(`Email: ${booking.email}`);
-    doc.fontSize(14).text(`Phone Number: ${booking.phoneNumber}`);
-    doc.fontSize(14).text(`Booking Date: ${booking.bookingDate}`);
-    doc.fontSize(14).text(`Event Type: ${booking.eventType}`);
-    doc.fontSize(14).text(`Booking Type: ${booking.bookingType}`);
-    doc.fontSize(14).text(`Venue: ${booking.venue}`);
+    // Styling for PDF
+    doc.font('Helvetica-Bold').fontSize(18).text('Booking Detail', { align: 'center' }).moveDown();
+
+    // Booking details section
+    doc.font('Helvetica-Bold').fontSize(14).text(`Client Name: ${booking.clientId.clientName}`);
+    doc.font('Helvetica').fontSize(14).text(`Email: ${booking.clientId.email}`);
+    doc.font('Helvetica').fontSize(14).text(`Phone Number: ${booking.clientId.phoneNumber}`);
+    doc.font('Helvetica').fontSize(14).text(`Booking Date: ${booking.bookingDate}`);
+    doc.font('Helvetica').fontSize(14).text(`Event Type: ${booking.eventType.name}`);
+    doc.font('Helvetica').fontSize(14).text(`Booking Type: ${titleCase(booking.bookingType)}`);
+    doc.font('Helvetica').fontSize(14).text(`Venue: ${booking.venue.name}`);
+    doc.font('Helvetica-Bold').fontSize(14).text(`Received Amount: ${booking.receivedAmount}`);
+    doc.font('Helvetica-Bold').fontSize(14).text(`Total Amount: ${booking.totalAmount}`).moveDown();
+
+    // "Payments Test" text
+    doc.font('Helvetica-Bold').fontSize(16).text('Payment Details', { align: 'center' }).moveDown();
+
+    // Get current y position
+    const startY = doc.y;
+
+    // Payment details section in table format
+    if (payments.length > 0) {
+      // Table headers
+      const headers = ['', 'Amount Type', 'Payment Mode', 'Details','Amount'];
+
+      // Calculate column widths
+      const columnWidth = 120;
+
+      // Draw headers
+      headers.forEach((header, index) => {
+        if(index == 0){
+          doc.font('Helvetica-Bold').fontSize(12).text(header, 30, startY);
+        }else{
+          doc.font('Helvetica-Bold').fontSize(12).text(header, index * columnWidth, startY);
+
+        }
+      });
+
+      // Move to next line
+      doc.moveDown();
+
+      // Table data
+      payments.forEach((payment, rowIndex) => {
+        const startY2 = doc.y;
+
+        const rowData = ['', titleCase(payment.amountType), titleCase(payment.paymentMode), titleCase(payment.details),payment.amount.toString()];
+
+        // Draw each cell
+        rowData.forEach((cell, colIndex) => {
+          doc.font('Helvetica').fontSize(12).text(cell, colIndex * columnWidth, startY2);
+        });
+
+        // Move to next line
+        doc.moveDown();
+        
+      });
+
+      const startY3 = doc.y;
+
+      const rowData2 = ['', 'Total', '','',booking.receivedAmount];
+
+      // Draw each cell
+      rowData2.forEach((cell, colIndex) => {
+        doc.font('Helvetica-Bold').fontSize(13).text(cell, colIndex * columnWidth, startY3);
+      });
+
+    } else {
+      doc.font('Helvetica').fontSize(14).text('No payments found for this booking').moveDown();
+    }
+
+    // End the PDF document
     doc.end();
   } catch (error) {
     console.error(error);
@@ -374,6 +462,11 @@ const generateBookingPDF = async (req, res) => {
   }
 };
 
+function titleCase(str) {
+ 
+  return str.charAt(0).toUpperCase()
+  + str.slice(1); 
+}
 
 
 module.exports = {
