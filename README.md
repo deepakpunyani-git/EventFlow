@@ -2,7 +2,7 @@
 
 ## Overview
 
-EventFlow is a Node.js-based backend service designed to manage various aspects of event planning and booking. It leverages Express.js for the server framework, MongoDB for the database, and integrates various utilities for authentication, scheduling, emailing, and more.
+EventFlow is a Node.js-based backend service designed to manage various aspects of event planning and booking. It leverages Express.js for the server framework, MongoDB for the database, and integrates various utilities for authentication, scheduling the events, and more.
 
 ## Features
 
